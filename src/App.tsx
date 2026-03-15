@@ -3,23 +3,29 @@ import { MapEngine } from './components/MapEngine';
 import { RouteStats } from './components/RouteStats';
 import { PaceCalculator } from './components/PaceCalculator';
 import { LocationSearch } from './components/LocationSearch';
+import { SettingsPanel } from './components/SettingsPanel';
 import { fetchOSRMRoute, type Point } from './utils/geo';
-import { Route, Undo2, Trash2, ChevronUp, ChevronDown, RotateCw } from 'lucide-react';
+import { Route, Undo2, Trash2, ChevronUp, ChevronDown, RotateCw, Settings } from 'lucide-react';
+import { useLocalStorage } from './hooks/useLocalStorage';
 
-
+// Coordinates for Mumbai, India
+const MUMBAI_COORDS: Point = [19.0760, 72.8777];
 
 function App() {
-  const [points, setPoints] = useState<Point[]>([]);
+  // Persisted state
+  const [points, setPoints] = useLocalStorage<Point[]>('rp_points', []);
+  const [activeRouteIndex, setActiveRouteIndex] = useLocalStorage<number>('rp_activeRouteIndex', 0);
+  const [userWeightKg, setUserWeightKg] = useLocalStorage<number>('rp_weightKg', 70);
+  const [isRoundTrip, setIsRoundTrip] = useLocalStorage<boolean>('rp_roundTrip', false);
+
+  // Ephemeral state (not persisted)
   const [routes, setRoutes] = useState<{ coordinates: Point[], distance: number }[]>([]);
-  const [activeRouteIndex, setActiveRouteIndex] = useState(0);
   const [userLocation, setUserLocation] = useState<Point | null>(null);
+  const [isPanelsExpanded, setIsPanelsExpanded] = useState(true);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
   // Derived distance
   const distanceKm = routes.length > 0 ? routes[activeRouteIndex]?.distance / 1000 : 0;
-  const [isPanelsExpanded, setIsPanelsExpanded] = useState(true);
-  const [isRoundTrip, setIsRoundTrip] = useState(false);
-  
-  // Coordinates for Mumbai, India
-  const MUMBAI_COORDS: Point = [19.0760, 72.8777];
 
   // Background location check on mount
   useEffect(() => {
@@ -33,11 +39,30 @@ function App() {
         },
         (err) => {
           console.log("On-mount geolocation failed or denied:", err);
-          // Map is already initialized in Mumbai
         },
         { enableHighAccuracy: true, maximumAge: 60000, timeout: 30000 }
       );
     }
+  }, []);
+
+  // Restore route on load if points exist
+  useEffect(() => {
+    const restoreRoute = async () => {
+      if (points.length < 2) {
+        setRoutes([]);
+        return;
+      }
+      const pointsToRoute = isRoundTrip ? [...points, points[0]] : points;
+      const results = await fetchOSRMRoute(pointsToRoute);
+      if (results && results.length > 0) {
+        setRoutes(results);
+        // Fly to first point on restore
+        window.dispatchEvent(new CustomEvent('fly-to', { detail: { lat: points[0][0], lng: points[0][1], zoom: 13 } }));
+      }
+    };
+    restoreRoute();
+    // Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Effect to recalculate routing whenever waypoints change
@@ -48,17 +73,12 @@ function App() {
         setActiveRouteIndex(0);
         return;
       }
-      // If round trip is enabled, we append the first point to the end to close the loop
-      const pointsToRoute = isRoundTrip
-        ? [...points, points[0]]
-        : points;
-
+      const pointsToRoute = isRoundTrip ? [...points, points[0]] : points;
       const results = await fetchOSRMRoute(pointsToRoute);
       if (results && results.length > 0) {
         setRoutes(results);
         setActiveRouteIndex(0);
       } else {
-        // Fallback or error state
         setRoutes([]);
         setActiveRouteIndex(0);
       }
@@ -73,6 +93,7 @@ function App() {
 
   const handleClear = () => {
     setPoints([]);
+    setRoutes([]);
   };
 
   const handleUndo = () => {
@@ -101,6 +122,14 @@ function App() {
         initialCenter={MUMBAI_COORDS}
       />
 
+      {/* Settings Panel */}
+      <SettingsPanel
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        weightKg={userWeightKg}
+        onWeightChange={setUserWeightKg}
+      />
+
       {/* Header Overlay */}
       <div
         className="glass-panel"
@@ -110,27 +139,36 @@ function App() {
           left: '16px',
           right: '16px',
           zIndex: 1000,
-          padding: '12px 20px',
+          padding: '12px 16px',
           display: 'flex',
           flexDirection: 'row',
+          alignItems: 'center',
           gap: '12px'
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', fontSize: '1.25rem', color: 'var(--primary)' }}>
-            <Route size={24} />
-          </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-
-          </div>
+        {/* Logo */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', fontSize: '1.25rem', color: 'var(--primary)', flexShrink: 0 }}>
+          <Route size={24} />
         </div>
 
         {/* Location Search Bar */}
-        <LocationSearch
-          onLocationSelect={handleLocationSelect}
-          onAddToRoute={handleAddToRoute}
-          onUserLocationFound={(lat, lng) => setUserLocation([lat, lng])}
-        />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <LocationSearch
+            onLocationSelect={handleLocationSelect}
+            onAddToRoute={handleAddToRoute}
+            onUserLocationFound={(lat, lng) => setUserLocation([lat, lng])}
+          />
+        </div>
+
+        {/* Settings Button */}
+        <button
+          className="btn-icon"
+          style={{ padding: '8px', flexShrink: 0 }}
+          onClick={() => setIsSettingsOpen(true)}
+          aria-label="Open Settings"
+        >
+          <Settings size={18} />
+        </button>
       </div>
 
       {/* Floating Action Controls */}
@@ -195,7 +233,6 @@ function App() {
         {/* Scrollable Panels Area */}
         <div style={{
           width: '100%',
-          pointerEvents: isPanelsExpanded ? 'auto' : 'none',
           padding: '0 16px',
           display: 'flex',
           flexDirection: 'row',
@@ -211,7 +248,7 @@ function App() {
           <div style={{ flex: '0 0 auto', width: '90%', maxWidth: '400px' }}>
             <RouteStats
               distanceKm={distanceKm}
-              userWeightKg={67}
+              userWeightKg={userWeightKg}
             />
           </div>
           <div style={{ flex: '0 0 auto', width: '90%', maxWidth: '400px' }}>
@@ -221,7 +258,7 @@ function App() {
           </div>
         </div>
       </div>
-    </div >
+    </div>
   );
 }
 

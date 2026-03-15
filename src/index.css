@@ -65,7 +65,7 @@ body {
   transition: all 0.2s ease-in-out;
   border: none;
   background: var(--primary);
-  color: white;
+  color: black;
 }
 
 .btn:hover {
