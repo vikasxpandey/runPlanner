@@ -240,6 +240,7 @@ function App() {
           overflowX: 'auto',
           WebkitOverflowScrolling: 'touch',
           alignItems: 'flex-end',
+          pointerEvents: 'auto',
           transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
           transform: isPanelsExpanded ? 'translateY(0)' : 'translateY(150%)',
           opacity: isPanelsExpanded ? 1 : 0,
