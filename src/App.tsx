@@ -219,7 +219,6 @@ function App() {
           onClick={() => setIsPanelsExpanded(!isPanelsExpanded)}
           className="btn-icon"
           style={{
-            pointerEvents: 'none',
             marginBottom: '12px',
             boxShadow: 'var(--shadow-lg)',
             alignSelf: 'flex-end',
@@ -233,10 +232,10 @@ function App() {
         {/* Scrollable Panels Area */}
         <div style={{
           width: '100%',
+          pointerEvents: 'none',
           padding: '0 16px',
           display: 'flex',
           flexDirection: 'row',
-          pointerEvents: 'none',
           gap: '16px',
           overflowX: 'auto',
           WebkitOverflowScrolling: 'touch',
