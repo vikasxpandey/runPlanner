@@ -219,7 +219,7 @@ function App() {
           onClick={() => setIsPanelsExpanded(!isPanelsExpanded)}
           className="btn-icon"
           style={{
-            pointerEvents: 'auto',
+            pointerEvents: 'none',
             marginBottom: '12px',
             boxShadow: 'var(--shadow-lg)',
             alignSelf: 'flex-end',
@@ -236,23 +236,23 @@ function App() {
           padding: '0 16px',
           display: 'flex',
           flexDirection: 'row',
+          pointerEvents: 'none',
           gap: '16px',
           overflowX: 'auto',
           WebkitOverflowScrolling: 'touch',
           alignItems: 'flex-end',
-          pointerEvents: 'auto',
           transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
           transform: isPanelsExpanded ? 'translateY(0)' : 'translateY(150%)',
           opacity: isPanelsExpanded ? 1 : 0,
           maxHeight: isPanelsExpanded ? '1000px' : '0px',
         }}>
-          <div style={{ flex: '0 0 auto', width: '90%', maxWidth: '400px' }}>
+          <div style={{ flex: '0 0 auto', width: '90%', maxWidth: '400px', pointerEvents: 'auto' }}>
             <RouteStats
               distanceKm={distanceKm}
               userWeightKg={userWeightKg}
             />
           </div>
-          <div style={{ flex: '0 0 auto', width: '90%', maxWidth: '400px' }}>
+          <div style={{ flex: '0 0 auto', width: '90%', maxWidth: '400px', pointerEvents: 'auto' }}>
             <PaceCalculator
               distanceKm={distanceKm}
             />
